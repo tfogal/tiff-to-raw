@@ -1,4 +1,4 @@
-CXXFLAGS=-std=c++0x -Wall -Wextra
+CXXFLAGS=-g -std=c++0x -Wall -Wextra
 OBJ=tiffraw.o
 LIBS=-ltiff
 

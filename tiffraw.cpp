@@ -58,10 +58,45 @@ std::string sampleformat(uint16_t sf) {
   return "unknown!";
 }
 
+std::string nrrd_type(uint16_t bits_per_sample, uint16_t sampleformat)
+{
+  switch(sampleformat) {
+    case SAMPLEFORMAT_UINT:
+      switch(bits_per_sample) {
+        case 8: return "uint8";
+        case 16: return "uint16";
+        case 32: return "uint32";
+        case 64: return "uint64";
+      }
+      break;
+    case SAMPLEFORMAT_INT:
+      switch(bits_per_sample) {
+        case 8: return "int8";
+        case 16: return "int16";
+        case 32: return "int32";
+        case 64: return "int64";
+      }
+      break;
+    case SAMPLEFORMAT_IEEEFP:
+      switch(bits_per_sample) {
+        case 32: return "float";
+        case 64: return "double";
+      }
+      break;
+    /* don't bother handling void, complex numbers, we don't know what to do
+     * with them anyway. */
+    case SAMPLEFORMAT_COMPLEXINT:
+      break;
+    case SAMPLEFORMAT_COMPLEXIEEEFP:
+      break;
+  }
+  return "unknown";
+}
+
 int main(int argc, char *argv[])
 {
-  if(argc != 3) {
-    std::cerr << "Usage: " << argv[0] << " in.tiff out\n";
+  if(argc != 4) {
+    std::cerr << "Usage: " << argv[0] << " in.tiff out nhdr\n";
     return EXIT_FAILURE;
   }
 
@@ -91,9 +126,15 @@ int main(int argc, char *argv[])
   }
   std::clog << "data type: " << sampleformat(sf) << "(" << sf << ")\n";
 
+#ifndef NDEBUG
   TIFFPrintDirectory(tif.get(), stdout, TIFFPRINT_CURVES | TIFFPRINT_COLORMAP);
+#endif
 
   std::ofstream out(argv[2], std::ios::out | std::ios::binary);
+  if(!out) {
+    std::cerr << "Could not open " << argv[2] << " for writing.\n";
+    return EXIT_FAILURE;
+  }
 
   TIFFSetDirectory(tif.get(), 0);
   do {
@@ -107,4 +148,19 @@ int main(int argc, char *argv[])
   } while(TIFFReadDirectory(tif.get()));
 
   out.close();
+
+  std::ofstream nhdr(argv[3], std::ios::out);
+  if(!nhdr) {
+    std::cerr << "Could not open '" << argv[3] << "' to create header.\n";
+    return EXIT_FAILURE;
+  }
+  nhdr << "NRRD0002\n"
+       << "dimension: 3\n"
+       << "sizes: " << dims[0] << " " << dims[1] << " " << dims[2] << "\n"
+       << "type: " << nrrd_type(bits_sample, sf) << "\n"
+       << "encoding: raw\n"
+       << "data file: " << argv[2] << "\n";
+  nhdr.close();
+
+  return EXIT_SUCCESS;
 }
