@@ -1,0 +1,6 @@
+Converts a 3D TIFF file to raw data.  The TIFF must use the 'directory' feature
+to store each slice of the image plane.
+
+This code will convert it into a raw data file, and create a small little nrrd
+header to go along with that.  The conversion is done completely out-of-core;
+you should only need enough memory to load a single scanline at any one time.
